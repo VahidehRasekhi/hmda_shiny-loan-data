@@ -19,6 +19,7 @@ lei <- content(response, type = 'text') %>%
   as_tibble()
 
 # data <- read.csv("data/state_WA.csv")
+lei_names <- read.csv("data/lei_name.csv")
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -30,7 +31,7 @@ ui <- fluidPage(
     sidebarLayout(
         sidebarPanel(
           selectInput("select", label = h3("Select box"), 
-                      choices = lei$name, 
+                      choices = lei_names$name, 
                       selected = 1),
           
           
@@ -38,7 +39,7 @@ ui <- fluidPage(
 
         # Show a plot of the generated distribution
         mainPanel(
-          fluidRow(column(3, verbatimTextOutput("value")))
+          fluidRow(column(10, verbatimTextOutput("value")))
         )
     )
 )
