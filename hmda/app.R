@@ -20,6 +20,7 @@ lei <- content(response, type = 'text') %>%
 
 # data <- read.csv("data/state_WA.csv")
 lei_names <- read.csv("data/lei_name.csv")
+lars_names <- read.csv("data/lars_name.csv")
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -40,6 +41,7 @@ ui <- fluidPage(
         # Show a plot of the generated distribution
         mainPanel(
           fluidRow(column(10, verbatimTextOutput("value")))
+          ggplot("plot")
         )
     )
 )
@@ -48,6 +50,8 @@ ui <- fluidPage(
 server <- function(input, output) {
 
       output$value <- renderPrint({ input$select })
+      
+      renderPlot(date %>% select(input$select))
 
 }
 
