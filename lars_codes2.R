@@ -1,3 +1,5 @@
+library(tidyverse)
+
 data <- read_lines("data/lar_data_fields.txt")
 lars_names <- c()
 options <- c()
@@ -21,12 +23,12 @@ for (i in 1:length(data)){
 }
 lars_tib <- tibble(lars_names = lars_names, options = options)
 
-lars_tib %>% separate(options, c("key", "value"), " - ", extra = "merge")
+lars_tib <- lars_tib %>% separate(options, c("key", "value"), " - ", extra = "merge")
 
 write_csv(lars_tib, "data/lars_lookup.csv")
 
 
-
+lars_tib
 
 
 
