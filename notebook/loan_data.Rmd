@@ -1,0 +1,254 @@
+---
+title: "Loan_data_Vahideh"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library (readxl)
+library (plotly)
+library (ggplot2)
+library (dplyr)
+library(scales)
+```
+
+
+```{r}
+washington <- read_csv('./data/Washington.csv') 
+```
+
+
+#making row 1 as column title 
+```{r}
+names(washington) <- as.matrix(washington[1, ])
+```
+
+```{r}
+washington %>% 
+  head()
+```
+#getting rid of the first row 
+```{r}
+washington <- washington [2:823324, ]
+```
+
+```{r}
+washington %>% 
+  head()
+```
+#applicants' race (most applicants were white) 
+```{r}
+count(washington, derived_race) %>% 
+  arrange(desc(derived_race))
+```
+
+#applicants' sex (most applicants were "joint", second is "male" and third is "female" )
+```{r}
+count(washington, derived_sex) %>% 
+  arrange(desc(derived_sex))
+```
+
+#there are way more loans originated than the ones accepted/finalized. Only 69,039 loans have been purchased.   
+```{r}
+count(washington, action_taken) 
+```
+
+#1 - Loan originated
+#2 - Application approved but not accepted
+#3 - Application denied
+#4 - Application withdrawn by applicant
+#5 - File closed for incompleteness
+#6 - Purchased loan
+#7 - Preapproval request denied
+#8 - Preapproval request approved but not accepted
+
+
+```{r}
+washington <- washington %>% 
+  mutate(action_taken= case_when(
+    action_taken== 1 ~ "Loan originated",
+    action_taken== 2 ~  "Application approved but not accepted",
+    action_taken== 3 ~  "Application denied",
+    action_taken== 4 ~  "Application withdrawn by applicant",
+    action_taken== 5 ~  "File closed for incompleteness",
+    action_taken== 6 ~  "Purchased loan",
+    action_taken== 7 ~  "Preapproval request denied",
+    action_taken== 8 ~  "Preapproval request approved but not accepted"
+  ))
+  
+```
+
+```{r}
+count(washington, derived_ethnicity)
+```
+
+```{r}
+washington %>% 
+  select(action_taken, derived_sex, derived_ethnicity, derived_race) 
+```
+
+```{r}
+washington %>% 
+  select(derived_sex, derived_ethnicity, derived_race) %>% 
+  filter(derived_sex=='Male' | derived_sex== 'Female') %>% 
+  group_by(derived_sex, derived_race) %>% 
+  count()
+```
+
+```{r}
+washington %>% 
+  select(derived_sex, action_taken) %>% 
+  filter (derived_sex=='Male') %>% 
+  summarize()
+```
+```{r}
+count(washington, derived_sex, action_taken) %>% 
+  filter (derived_sex=='Male' | derived_sex== 'Female') 
+```
+
+```{r}
+count(washington, derived_sex=='Female')
+```
+
+#visualization for sex and getting rid of scientific notation on the y-axis 
+```{r}
+point <- format_format(big.mark = " ", decimal.mark = ",", scientific = FALSE)
+
+```
+
+```{r}
+washington %>% 
+  ggplot(aes(x=derived_sex))+
+  geom_bar()+
+  scale_y_continuous(labels=point)
+```
+#making the y_axis look better and ordering the bars in the plot 
+```{r}
+theTable <- within(washington, 
+                   derived_sex <- factor(derived_sex, 
+                                      levels=names(sort(table(derived_sex), 
+                                                        decreasing=TRUE))))
+```
+
+```{r}
+  ggplot(theTable, aes(x=derived_sex))+
+  geom_bar()
+```
+#count of races
+```{r}
+count(washington, derived_race)
+```
+
+#adding percentage column to race
+```{r}
+washington %>% 
+  group_by(derived_race) %>% 
+  summarize(count= n()) %>% 
+  mutate(percentage= count/sum(count)*100)
+```
+
+
+#plotting races
+
+```{r}
+theTable <- within(washington, 
+                   derived_race <- factor(derived_race, 
+                                      levels=names(sort(table(derived_race), 
+                                                        decreasing=TRUE))))
+```
+
+```{r}
+ ggplot(theTable, aes(x=derived_race))+
+  geom_bar()+
+  theme(axis.text.x = element_text(angle = 45, hjust=1))+
+  ggtitle("Number of Races")
+```
+
+
+
+```{r}
+washington %>%  
+  group_by(loan_purpose) %>% 
+  summarise(count=n()) %>% 
+  arrange(desc(count))
+```
+#loan_purpose 
+#1 - Home purchase
+#2 - Home improvement
+#31 - Refinancing
+#32 - Cash-out refinancing
+#4 - Other purpose
+#5 - Not applicable
+
+```{r}
+washington<- washington %>% 
+  mutate(loan_purpose= case_when(
+    loan_purpose== 1 ~ "Home purchase",
+    loan_purpose== 2 ~  "Home improvement",
+     loan_purpose== 31 ~  "Refinancing",
+   loan_purpose== 32 ~  "Cash-out refinancing",
+    loan_purpose== 4 ~  "Other purpose",
+    loan_purpose== 5 ~  "Not applicable"
+  ))
+```
+
+
+```{r}
+loan <- within(washington, 
+                   loan_purpose <- factor(loan_purpose, 
+                                      levels=names(sort(table(loan_purpose), 
+                                                        decreasing=TRUE))))
+```
+
+
+```{r}
+  washington %>%
+  group_by(loan_purpose) %>%
+  summarise(Count = n()) %>%
+  arrange(desc(Count)) %>%
+  ggplot(aes(reorder(loan_purpose, Count), y = Count, fill = Count)) + 
+  geom_bar(stat ='identity') +  
+  coord_flip() + 
+  theme(legend.position ='none', axis.text.x = element_text(size = 15), axis.text.y =  element_text(size = 20)) +
+  ggtitle('Loan Purpose Counts')+
+  scale_y_continuous(labels = comma)
+```
+
+
+```{r}
+loan_race<- washington %>% 
+  group_by(loan_purpose, derived_race) %>% 
+  summarise(count=n()) %>% 
+  arrange(desc(count)) 
+
+
+loan_race
+```
+
+
+ 
+
+
+```{r}
+washington %>% 
+  group_by(loan_purpose, derived_race) %>% 
+  summarise(count=n()) %>% 
+  arrange(desc(count)) %>% 
+  ggplot(aes(reorder(loan_purpose, count), y=count))+
+  geom_bar(aes(fill=derived_race), stat='identity')+
+  scale_y_continuous(labels = comma)+
+  coord_flip()+
+  theme(legend.position = "bottom", legend.box = "vertical", axis.text.x = element_text(size = 10)) +
+  ggtitle('Loan Purpose Counts by Applicant Race')+
+  xlab("Loan Purpose") # for the x axis label
+```
+
+```{r}
+count(washington, lei)
+```
+
+
+
+
+
+
