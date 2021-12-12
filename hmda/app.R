@@ -1,48 +1,57 @@
 #
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
+# HMDA Shiny Load Data Application
 #
-# Find out more about building applications with Shiny here:
+# Pull down for selecting institution, typing in the input field will 
+#   filter the items in the selection
 #
-#    http://shiny.rstudio.com/
+#
+#
+#
+#
 #
 
 library(shiny)
+library(tidyverse)
+library(httr)
+
+# data <- read.csv("data/state_WA.csv")
+lei_names <- read.csv("data/lei_name.csv")
+lars_names <- read.csv("data/lars_lookup.csv")
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
-
+    
     # Application title
-    titlePanel("Old Faithful Geyser Data"),
-
+    titlePanel("HMDA Loan Data"),
+    
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
-            sliderInput("bins",
-                        "Number of bins:",
-                        min = 1,
-                        max = 50,
-                        value = 30)
+            selectInput("select", label = h3("Select box"), 
+                        choices = lei_names$name, 
+                        selected = 1),            
+            selectInput("select", label = h3("Select box"), 
+                        choices = lei_names$name,
+                        selected = 1),
+            
+            
         ),
-
+        
         # Show a plot of the generated distribution
         mainPanel(
-           plotOutput("distPlot")
+            fluidRow(column(10, verbatimTextOutput("value")))
+            # ggplot("plot")
         )
     )
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-
-    output$distPlot <- renderPlot({
-        # generate bins based on input$bins from ui.R
-        x    <- faithful[, 2]
-        bins <- seq(min(x), max(x), length.out = input$bins + 1)
-
-        # draw the histogram with the specified number of bins
-        hist(x, breaks = bins, col = 'darkgray', border = 'white')
-    })
+    
+    output$value <- renderPrint({ input$select })
+    
+    # renderPlot(date %>% select(input$select))
+    
 }
 
 # Run the application 
