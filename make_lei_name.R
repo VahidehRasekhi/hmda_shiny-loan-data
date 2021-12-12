@@ -14,20 +14,10 @@ lei <- content(response, type = 'text') %>%
 data_lei <- count(data, lei)
 lei_names <- merge(tibble(lei = unique(data$lei)), select(lei, name, lei)) %>%
               arrange(name)
-
 lei_names <- lei_names %>% mutate(name = replace(name, lei == "549300QSUEE20YO86W39", "Specialized Loan Servicing Llc")) 
 lei_names <- lei_names %>% mutate(name = replace(name, lei == "549300UL36AJZ0WZ4U93", "Closing Mark Home Loans"))
 lei_names <- lei_names %>% arrange(name)
 write_csv(lei_names, "data/lei_name.csv")
 
-colnames(data)
 
-data$derived_loan_product_type
-data$aus.1
-
-data %>% filter(aus.2 == 1111)
-
-df <- tibble(`a 1` = 1, `a 2` = 2)
-
-tibble('1' = "foo", '2' = "woo")
 
