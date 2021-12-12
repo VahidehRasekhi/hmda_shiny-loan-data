@@ -1,26 +1,22 @@
 #
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
+# HMDA Shiny Load Data Application
 #
-# Find out more about building applications with Shiny here:
+# Pull down for selecting institution, typing in the input field will 
+#   filter the items in the selection
 #
-#    http://shiny.rstudio.com/
+#
+#
+#
+#
 #
 
 library(shiny)
 library(tidyverse)
 library(httr)
 
-url <- 'https://ffiec.cfpb.gov/v2/data-browser-api/view/filers?states=WA&years=2020'
-response <- GET(url) 
-lei <- content(response, type = 'text') %>% 
-  jsonlite::fromJSON() %>% 
-  .[[1]] %>%                      # Select the first element of the resulting list
-  as_tibble()
-
 # data <- read.csv("data/state_WA.csv")
 lei_names <- read.csv("data/lei_name.csv")
-lars_names <- read.csv("data/lars_name.csv")
+lars_names <- read.csv("data/lars_lookup.csv")
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -41,7 +37,7 @@ ui <- fluidPage(
         # Show a plot of the generated distribution
         mainPanel(
           fluidRow(column(10, verbatimTextOutput("value")))
-          ggplot("plot")
+          # ggplot("plot")
         )
     )
 )
@@ -51,7 +47,7 @@ server <- function(input, output) {
 
       output$value <- renderPrint({ input$select })
       
-      renderPlot(date %>% select(input$select))
+      # renderPlot(date %>% select(input$select))
 
 }
 
