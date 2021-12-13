@@ -1,5 +1,4 @@
 library(tidyverse)
-library(kit)
 
 data <- read.csv("data/state_WA.csv")
 lars_names <- read.csv("data/lars_lookup.csv")
