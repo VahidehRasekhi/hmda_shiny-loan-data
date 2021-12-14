@@ -61,10 +61,17 @@ lars_tib <- lars_tib %>%
   separate(options, c("key", "value"), " - ", extra = "merge")
 write_csv(lars_tib, "data/lars_lookup.csv")
 
+###############################################################################
 
 
+lars_names <- c()
+options <- c()
+lars_names <- c(lars_names, data[53])
+
+options <- c(options, data[53])
 
 
+separate(data[56], c("key", "value"), " - ", extra = "merge")
 
 
 
