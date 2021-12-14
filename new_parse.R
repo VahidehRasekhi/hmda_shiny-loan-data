@@ -4,7 +4,8 @@ data <- read_lines("data/lar_data_fields.txt")
 lars_names <- c()
 options <- c()
 for (i in 1:length(data)) {
-  if (grepl("Values:", data[i],)) {
+  if (grepl("Values:", data[i],) ||
+      grepl("binned", data[i],)) {
     # Ignore this type, will have to be handled differently
     if (grepl("Varying values$", data[i+1],)) {
       next
@@ -13,7 +14,7 @@ for (i in 1:length(data)) {
     lars_name <- data[i - 2]
     i <- i + 1
     # This is a code lookup
-    if (grepl("^[01] - ", data[i+1],)) {
+    if (grepl("^[01] - ", data[i],)) {
         while (grepl(" - ", data[i],)) {
           lars_names <- c(lars_names, lars_name)
           options <- c(options, data[i])
@@ -27,9 +28,6 @@ for (i in 1:length(data)) {
       options <- c(options, paste(data[i], data[i], sep=" - "))
       i <- i + 1
     }
-    # These are binned values
-  } else if (grepl("binned", data[i+1],)) {
-    next
   }
 }
     

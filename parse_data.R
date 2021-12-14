@@ -73,6 +73,8 @@ options <- c(options, data[53])
 
 separate(data[56], c("key", "value"), " - ", extra = "merge")
 
+grepl("^[01] - ", "1 - Loan originated",)
+  
 
 
 
