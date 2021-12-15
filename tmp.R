@@ -20,7 +20,7 @@ lars_names %>%
 data %>% filter(lei == "549300HW662MN1WU8550") %>% pull(census_tract)
   
 
-
+data$ffiec_msa_md_median_family_income
 
 
 
