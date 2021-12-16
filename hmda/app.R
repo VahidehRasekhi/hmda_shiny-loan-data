@@ -14,7 +14,7 @@ library(shiny)
 library(tidyverse)
 library(httr)
 
-# data <- read.csv("data/state_WA.csv")
+wash_init <- read.csv("data/wash_init.csv")
 lei_names <- read.csv("data/lei_name.csv")
 lars_names <- read.csv("data/lars_lookup.csv")
 
@@ -30,9 +30,9 @@ ui <- fluidPage(
             selectInput("select", label = h3("Select box"), 
                         choices = lei_names$name, 
                         selected = 1),            
-            selectInput("action_taken", label = h3("Select box"), 
+            selectInput("derived_ethnicity", label = h3("Select box"), 
                         choices = c("All", lars_names %>% 
-                                        filter(lars_names == "action_taken") %>% pull(value)),
+                                        filter(lars_names == "derived_ethnicity") %>% pull(value)),
                         selected = 1)
             
             
@@ -53,7 +53,7 @@ server <- function(input, output) {
     output$value1 <- renderPrint({ input$select })
     
     output$value2 <- renderPrint({ lars_names %>% 
-            filter(lars_names == "action_taken", value == input$action_taken) %>% pull(key) })
+            filter(lars_names == "derived_ethnicity", value == input$derived_ethnicity) %>% pull(key) })
     
     
     
