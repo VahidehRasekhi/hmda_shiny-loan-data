@@ -1,6 +1,6 @@
 library(tidyverse)
 
-washington <- read.csv("data/state_WA.csv")
+washington <- read.csv("../hmda//data/state_WA.csv")
 wash_init <- read.csv("data/wash_init.csv")
 lars_names <- read.csv("data/lars_lookup.csv")
 lei_names <- read.csv("data/lei_name.csv")
