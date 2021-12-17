@@ -12,19 +12,17 @@
 
 library(shiny)
 library(tidyverse)
+library(ggplot2)
 library(httr)
 
 wash_init <- read.csv("data/wash_init.csv")
 lei_names <- read.csv("data/lei_name.csv")
 lars_names <- read.csv("data/lars_lookup.csv")
 
-# Define UI for application that draws a histogram
 ui <- fluidPage(
     
-    # Application title
     titlePanel("HMDA Loan Data"),
     
-    # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
             selectInput("select", label = h3("Select box"), 
@@ -33,33 +31,62 @@ ui <- fluidPage(
             selectInput("derived_ethnicity", label = h3("Select box"), 
                         choices = c("All", lars_names %>% 
                                         filter(lars_names == "derived_ethnicity") %>% pull(value)),
-                        selected = 1)
-            
-            
+                        selected = 1),
+
+            # selectInput("man",
+            #             "Manufacturer:",
+            #             c("All",
+            #               unique(as.character(mpg$manufacturer)))),
+            # 
+            # selectInput("trans",
+            #             "Transmission:",
+            #             c("All",
+            #               unique(as.character(mpg$trans)))),
+            # 
+            # selectInput("cyl",
+            #             "Cylinders:",
+            #             c("All",
+            #               unique(as.character(mpg$cyl))))
         ),
-        
-        # Show a plot of the generated distribution
+
         mainPanel(
             fluidRow(column(10, verbatimTextOutput("value1"))),
-            fluidRow(column(10, verbatimTextOutput("value2")))
-            # ggplot("plot")
+            fluidRow(column(10, verbatimTextOutput("value2"))),
+            fluidRow(column(10, DT::dataTableOutput("table")))
+            
         )
     )
 )
 
-# Define server logic required to draw a histogram
 server <- function(input, output) {
     
+    one_lei <- reactive({
+        lei_number <- lei_names %>% filter(name == input$select) %>% pull(lei)
+        wash_init %>% filter(lei == lei_number)
+    })
+    
+    demographic  <- reactive({
+        wi_eth_tib <- wash_init %>% filter(derived_ethnicity == input$derived_ethnicity) %>%
+            count(action_taken)
+        lei_eth_tib <- one_lei() %>% filter(derived_ethnicity == input$derived_ethnicity) %>%
+            count(action_taken)
+        
+        left_join(lei_eth_tib, wi_eth_tib, by = "action_taken")
+    })
+
     output$value1 <- renderPrint({ input$select })
     
-    output$value2 <- renderPrint({ lars_names %>% 
+    output$value2 <- renderPrint({ lars_names %>%
             filter(lars_names == "derived_ethnicity", value == input$derived_ethnicity) %>% pull(key) })
-    
-    
-    
-    # renderPlot(date %>% select(input$select))
+
+    output$table <- DT::renderDataTable(DT::datatable({
+        data <- wash_init %>% count(action_taken)
+        if (input$derived_ethnicity != "All") {
+            data <- demographic()
+        }
+        data
+    }))
     
 }
 
-# Run the application 
-shinyApp(ui = ui, server = server)
+shinyApp(ui = ui, server = server, options = list("width" = 1600))

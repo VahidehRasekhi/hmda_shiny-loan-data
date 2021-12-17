@@ -1,8 +1,10 @@
 library(tidyverse)
 
-# washington <- read.csv("data/state_WA.csv")
+washington <- read.csv("data/state_WA.csv")
 wash_init <- read.csv("data/wash_init.csv")
 lars_names <- read.csv("data/lars_lookup.csv")
+lei_names <- read.csv("data/lei_name.csv")
+
 
 washington$action_taken
 
@@ -39,7 +41,9 @@ count(washington, loan_purpose) #
 count(washington, occupancy_type) # 
 
 
-one_lei <- washington %>% filter(lei == "SS1TRMSN6BRNMOREEV51")
+wash_init %>% 
+
+one_lei <- wash_init %>% filter(lei == "WKN6AF1FCL7BBYGTGI83")
 
 wi_eth_tib <- wash_init %>% filter(derived_ethnicity == "Hispanic or Latino") %>%
   count(action_taken)
@@ -52,4 +56,10 @@ eth_compare <- left_join(lei_eth_tib, wi_eth_tib, by = "action_taken")
 
 wash_init <- washington %>% filter(loan_purpose == "1", occupancy_type == "1") 
 write_csv(wash_init, "data/wash_init.csv")
+
+lei_names %>% filter(name == "21ST MORTGAGE CORPORATION") %>% pull(lei)
+
+wash_init %>% filter(lei == "WKN6AF1FCL7BBYGTGI83")
+
+
 
