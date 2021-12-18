@@ -1,0 +1,293 @@
+---
+title: "Washington_Data"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(plotly)
+```
+
+#Read in WA data
+```{r}
+washington <-read_csv('data/state_WA.csv')
+```
+
+```{r}
+head(washington, 5)
+```
+
+```{r}
+
+
+```
+
+```{r}
+#table(washington$lei)#%>%order()
+```
+
+
+```{r}
+washington%>%
+  group_by(lei, derived_race)%>%
+  summarise(amount_lent=sum(loan_amount)) %>% #arrange(desc(amount_lent))
+  arrange(lei)
+```
+
+
+```{r}
+washington%>%
+  filter(action_taken==1)%>%
+  group_by(lei, derived_race)%>%
+  tally()
+```
+
+```{r}
+washington%>%
+  filter(action_taken!=1)%>%
+  group_by(lei, derived_race)%>%
+  tally()
+```
+
+```{r}
+washington%>%
+  filter(action_taken==1 & derived_race != "White")%>%
+  group_by(lei, derived_race)%>%
+  tally()
+```
+
+
+#Dec_11 Pct_approved by race 
+```{r}
+wa_race<-washington%>%
+  select(lei, county_code, census_tract, derived_race, action_taken, tract_population, tract_minority_population_percent)%>% mutate(approved=ifelse(action_taken == 1, 1, 0)) %>% group_by(lei, county_code, derived_race) %>% summarize(approved=sum(approved), denied=n()-sum(approved))# %>% mutate(pct_approval=approved/(approved+denied)) %>% mutate(pct_denied=(1-pct_approval))
+wa_race
+```
+#Dec_11
+```{r}
+wa_total <- wa_race %>% group_by(lei, county_code) %>% summarize(total_applic=sum(approved)+sum(denied))
+wa_result <- merge(wa_total, wa_race, by=c("lei","county_code")) %>% mutate(pct_approval=100*approved/total_applic, pct_denied=100*denied/total_applic)
+wa_result
+```
+```{r}
+#Dec_11 Compute Minority_pct vs White_pct per county per LEI
+wa_minority <- wa_result %>% mutate(bi_race=ifelse(derived_race=='White', 'White', 'Minority')) %>% group_by(lei, county_code,bi_race) %>% summarise(approved=sum(approved), denied=sum(denied))
+wa_county <- wa_minority %>% group_by(lei, county_code) %>% summarise(total_applic=sum(approved) + sum(denied))
+white_minority<-merge(wa_minority, wa_county, by=c("lei","county_code")) %>% mutate(pct_approval=100*approved/total_applic, pct_denied=100*denied/total_applic)
+
+white_minority
+
+```
+
+#Pct_approved and Pct_denied by race groupped by county/lei. Updated table to replace Na with 0
+
+```{r} 
+
+wa_result %>% select(lei, county_code, derived_race, pct_approval) %>% filter(derived_race %in% c("White", "Asian", "Black or African American", "American Indian or Alaska Native" , " Native Hawaiian or Other Pacific Islander") ) %>% pivot_wider(names_from = derived_race, values_from = pct_approval)%>%replace(is.na(.), 0)
+```
+
+
+
+```{r}
+#Replace NA worked. Add 3 non-races to Other WORKS! For table: originations_by_race
+wa_result %>% select(lei, county_code, derived_race, pct_approval) %>% pivot_wider(names_from = derived_race, values_from = pct_approval, values_fill = list(value=0))%>%replace(is.na(.), 0)%>%rowwise%>%mutate(Other=sum(c_across(c('Joint','Free Form Text Only', '2 or more minority races', 'Race Not Available')))) %>% select(lei, county_code, c("White", "Asian", "Black or African American", "American Indian or Alaska Native" , "Native Hawaiian or Other Pacific Islander", "Other") )
+```
+
+
+```{r}
+#Dec 16: Denial Rates Table WORKS!!!
+wa_result %>% select(lei, county_code, derived_race, pct_denied) %>% pivot_wider(names_from = derived_race, values_from = pct_denied, values_fill = list(value=0))%>%replace(is.na(.), 0)%>%rowwise%>%mutate(Other=sum(c_across(c('Joint','Free Form Text Only', '2 or more minority races', 'Race Not Available')))) %>% select(lei, county_code, c("White", "Asian", "Black or African American", "American Indian or Alaska Native" , "Native Hawaiian or Other Pacific Islander", "Other") ) %>% pivot_longer(cols = c("White", "Asian", "Black or African American", "American Indian or Alaska Native" , "Native Hawaiian or Other Pacific Islander", "Other"), names_to = "race", values_to = "values")%>% filter(county_code==53077) %>% head(n=200) %>%ggplot(aes(x=lei, y=values), fill=race)+ geom_bar(position="stack", stat="identity",aes(fill=race)) +coord_flip() + labs(title="Loans Denied") + theme(plot.title = element_text(size = 20, color = "orange")) + labs(y=" % pct")
+  #ggtitle("Loans Denied by Race")
+
+
+```
+
+```{r}
+by_income_count<-washington%>% select(lei, county_code, census_tract, derived_race, action_taken, tract_population, tract_minority_population_percent, income, ffiec_msa_md_median_family_income) %>% mutate(approved=ifelse(action_taken == 1, 1, 0), low_income=ifelse(income<0.5*ffiec_msa_md_median_family_income, "low", "normal")) %>% group_by(lei, county_code, low_income) %>% summarize(approved=sum(approved), denied=n()-sum(approved))
+
+```
+
+```{r}
+by_income_pct<-merge(wa_total, by_income_count, by=c("lei","county_code")) %>% mutate(pct_approval=100*approved/total_applic, pct_denied=100*denied/total_applic) %>% filter(low_income=="low")%>%group_by(county_code) %>% mutate(avg_pct_approval_rate=mean(pct_approval)) %>% arrange(total_applic)
+by_income_pct
+```
+
+```{r}
+test<-by_income_pct%>% 
+  pivot_wider(names_from = low_income, values_from = pct_approval, values_fill = list(value=0))%>%replace(is.na(.), 0) %>% filter(county_code %in% c(53005, 53009, 53011, 53049, 53063)) %>% select(lei, low, avg_pct_approval_rate, total_applic, approved) %>% head(n=20)#%>% ggplot(aes(x=avg_pct_approval_rate, y=low, text=lei)) + geom_point(alpha=0.8, colour = "#51A0D5") + ggtitle("Originations Per Lender to Low Income Borrowers '%'") 
+#ggplotly(test, tooltip = "text")
+#filter(county_code %in% c(53001, 53003, 53005))
+  test
+  #ggplot(aes(x=low))+geom_density(aes(fill=lei), size = 1, alpha=0.75) + theme(legend.position = "bottom") 
+```
+```{r}
+test<-by_income_pct%>% 
+  pivot_wider(names_from = low_income, values_from = pct_approval, values_fill = list(value=0))%>%replace(is.na(.), 0) %>% filter(county_code == 53029) %>% select(lei, low, avg_pct_approval_rate, total_applic, approved) %>% head(n=20)%>% ggplot(aes(x=lei, y=low, text=total_applic)) + geom_bar(stat="identity", fill="steelblue") + coord_flip() + 
+labs(title="Loans Approved to Low Income Borrowers '%") + theme(plot.title = element_text(size = 14, face= "bold")) + labs(y="pct %" , face= "bold")
+#ggtitle("Originations Per Lender to Low Income Borrowers '%'")
+#+ geom_hline(yintercept= by_income_pct[1,4]) 
+ggplotly(test, tooltip = "text")
+```
+
+
+
+```{r}
+washington%>%
+  drop_na(county_code)%>%
+  group_by(county_code)%>%
+  distinct(county_code)%>%
+  summarize(n=n())
+
+```
+
+```{r}
+#Loans approved to low income borrowers
+#Need to Compute Avg income per a county? Or use ffiec_msa_md_median_family_income?
+
+median_family_income_per_county<-washington%>%
+  select(county_code,  ffiec_msa_md_median_family_income)%>%
+  drop_na(county_code)%>%
+  distinct(county_code, ffiec_msa_md_median_family_income)%>%
+  group_by(county_code, ffiec_msa_md_median_family_income)
+
+```
+
+
+```{r}
+#pct of loan approved to low income vs White
+
+income_approved_denied<-washington%>%
+  select(lei, county_code, census_tract, income, action_taken, tract_population, tract_minority_population_percent, ffiec_msa_md_median_family_income)%>%
+  mutate(approved=ifelse(action_taken == 1, 1, 0)) %>% 
+  group_by(lei, county_code, income) %>% 
+  summarize(approved=sum(approved), denied=n()-sum(approved))
+income_approved_denied
+```
+
+
+
+```{r}
+
+
+income_approved_denied %>%
+
+  #group_by(lei, county_code) %>% 
+  #summarize(sum(denied)) #%>%
+
+ # mutate(pct_approval=100*approved/total, pct_denied=100*denied/total)
+
+
+```
+
+
+```{r}
+#% of originated to White vs Minority Borrowers : if i figure out the lei category, I can color dots by
+#LEI (colour=LEI after aes)
+scatterplot<-white_minority%>% filter(county_code==53077) %>% select(lei, bi_race, pct_approval) %>% pivot_wider(names_from = bi_race, values_from = pct_approval) %>% replace(is.na(.), 0) %>% ggplot(aes(x=Minority, y=White, text=lei)) + geom_point(alpha=0.8, colour = "#51A0D5", size=2) + 
+labs(title="Loans Approved to White and Minority Borrowers '%") + theme(plot.title = element_text(size = 14, face= "bold")) + labs(face= "bold")  
+#ggtitle("Originations Per Lender to White and Minority Borrowers '%'") 
+ggplotly(scatterplot, tooltip = "text")
+
+```
+
+
+
+```{r}
+white_minority#%>% filter(county_code==53077) %>% summarise(n_distinct(lei))
+```
+
+#Dec_11 Originations by Lender by Race for county_code ==
+
+```{r}
+wa_result %>% select(lei, county_code, derived_race, pct_approval) %>% filter(derived_race %in% c("White", "Asian", "Black or African American", "American Indian or Alaska Native" , " Native Hawaiian or Other Pacific Islander"))%>% filter(county_code==53077)%>%pivot_wider(names_from = derived_race, values_from = pct_approval)
+
+
+```
+
+
+```{r}
+wa_result %>% filter(!derived_race %in% c("White" ,"Race Not Available") & pct_approval>=24) %>% arrange(desc(approved))
+```
+
+
+```{r}
+#Denied and Reasons for Denial
+wa_result %>% select(lei, county_code, derived_race, pct_denied) %>% filter(derived_race %in% c("White", "Asian", "Black or African American", "American Indian or Alaska Native" , " Native Hawaiian or Other Pacific Islander") )%>% filter(county_code==53001) %>% pivot_wider(names_from = derived_race, values_from = pct_denied) 
+```
+
+
+```{r}
+# Tract Minority Per County
+washington%>%select(county_code, action_taken, `denial_reason-1`, tract_population, tract_minority_population_percent)%>%
+filter(action_taken!=1)%>%group_by(county_code, tract_minority_population_percent, `denial_reason-1`)
+
+```
+
+#Tract_Minority_Pop_Pct
+```{r}
+washington%>%select(county_code, tract_minority_population_percent)%>%group_by(county_code)%>%distinct(county_code, tract_minority_population_percent)%>%
+   arrange(desc(tract_minority_population_percent))
+```
+
+
+## Pct_approved by gender per institution. FIX!!!
+```{r}
+washington%>%select(lei, county_code, census_tract, derived_sex, action_taken, tract_population, tract_minority_population_percent)%>% filter(derived_sex== "Female" | derived_sex =="Male") %>% mutate(approved= 
+ifelse(action_taken == 1, 1, 0)) %>% group_by(county_code, lei, derived_sex) %>% summarize(approved=sum(approved), denied=n()-sum(approved)) %>% mutate(pct_approval=approved/(approved+denied)) %>% pivot_wider(names_from = derived_sex, values_from = pct_approval) 
+-
+```
+
+
+# FIX!!! Reasons for Denied Loans ????? Per institution per county? Do the count of denied per race? tract_minority_population_percent, tract_population
+```{r}
+washington%>%select(lei, county_code, census_tract, derived_race, action_taken, `denial_reason-1`, tract_population, tract_minority_population_percent)%>% filter(derived_race %in% c("White", "Asian", "Black or African American", "American Indian or Alaska Native" , " Native Hawaiian or Other Pacific Islander")) %>% mutate(approved= 
+ifelse(action_taken == 1, 1, 0)) %>% group_by(county_code, lei, derived_race) %>% summarize(approved=sum(approved), denied=n()-sum(approved)) %>% mutate(pct_denied=denied/(approved+denied)) %>% pivot_wider(names_from = derived_race, values_from = pct_denied) 
+
+
+```
+
+
+
+# Origination Charges Rnkings
+```{r}
+washington%>%select(lei, county_code, loan_amount, action_taken, origination_charges ) %>% transform(origination_charges=as.numeric(origination_charges))%>% group_by(lei) %>% summarize(sum_origination_charges=sum(origination_charges))%>% arrange(desc(sum_origination_charges))
+```
+
+
+#
+```{r}
+washington%>%select(lei, county_code, action_taken, loan_amount) %>% filter(action_taken==1)%>% group_by(lei) %>% summarize(count_loans=n())%>% arrange(desc(loan_amount))
+```
+
+
+# Count of LEi
+```{r}
+count(washington, lei, county_code)
+washington%>%group_by(county_code)%>%summarize(count_lei =n())%>%arrange(desc(count_lei))
+```
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

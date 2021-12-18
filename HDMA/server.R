@@ -8,28 +8,41 @@
 #
 
 library(shiny)
+library(plotly)
 
 # Define server logic required to draw a histogram
-
 shinyServer(function(input, output) {
   
-  observeEvent(input$debug, {
-    browser()
-  })
- 
-}
-  
-#need to add logic for select input
-  
-  )
   output$scatPlot <- renderPlot({
     
-    white_minority%>% 
-      filter(county_code==53001) %>% 
+    #cat(file = stderr(), "drawing histogram", input$bins, "bins", "\n")
+    
+white_minority%>% 
+      filter(county_code==input$county_code) %>% 
       select(lei, bi_race, pct_approval) %>%
       pivot_wider(names_from = bi_race, values_from = pct_approval) %>% 
-      ggplot(aes(x=Minority, y=White)) + geom_point(color='red', size=3) + 
-      ggtitle("Originations Per Lender to White and Minority Borrowers '%'")
+      replace(is.na(.), 0) %>%
+      ggplot(aes(x=Minority, y=White, text=lei)) + geom_point(alpha=0.5, colour = "#51A0D5") + 
+      labs(title="Loans Approved to White and Minority Borrowers '%") + theme(plot.title = element_text(size = 14, face= "bold")) + 
+      labs(face= "bold")
+      #ggplotly(scatterplot, tooltip = "text")  
+
   })
+  
+  output$barPlot <- renderPlot({ 
+    
+by_income_pct%>%
+      pivot_wider(names_from = low_income, values_from = pct_approval, values_fill = list(value=0))%>%
+      replace(is.na(.), 0) %>% filter(county_code == input$county_code) %>% 
+      select(lei, low, avg_pct_approval_rate, total_applic, approved) %>% head(n=20)%>% 
+      ggplot(aes(x=lei, y=low, text=total_applic)) + geom_bar(stat="identity", fill="steelblue") + 
+      labs(title="Loans Approved to Low Income Borrowers '%") + theme(plot.title = element_text(size = 14, face= "bold")) + 
+      labs(y="pct %" , face= "bold") + coord_flip()
+      #+ geom_hline(yintercept= by_income_pct[1,4])
+      #ggplotly(test, tooltip = "text")
+    
+    
+    })
+   
   
 })

@@ -8,34 +8,48 @@
 #
 
 library(shiny)
+library(plotly)
 
 # Define UI for application that draws a histogram
-
 shinyUI(fluidPage(
   
   # Application title
-  titlePanel("HMDA Analysis"),
+  titlePanel("HDMA Analyis"),
   
   # Sidebar with a slider input for number of bins
   sidebarLayout(
     sidebarPanel(
-  
-    selectInput(inputId="countyCode", label="Enter County Code", choices=washington$county_code), 
-    selectInput(inputId="lei", label="Enter LEI", choices=washington$lei),
-    numericInput(inputId='result', label="Number of Results to view", value=20)
-    
-   ),
-   
-  mainPanel(
-        fluidRow(
-        plotOutput("scatPlot", height="400px")
-                 )
-      ), 
-      fluidRow(
-        plotOutput("barPlot", height="300px")
-      )
+      sliderInput("bins",
+                  "Number of bins:",
+                  min = 1,
+                  max = 50,
+                  value = 30),
       
+      selectInput("county_code",
+                  "Select County:",
+                  choices = washington %>% pull(county_code)%>%unique()%>%sort()),
+      
+      selectInput("lei",
+                  "Select Lender:",
+                   choices = washington %>% pull(lei)%>%unique()%>%sort())
+    ),
+    
+    # Show a plot of the generated distribution
+    mainPanel(
+      fluidRow( 
+               column(width = 8,
+                 plotOutput("scatPlot")
+                ),
+                
+               column(width = 4, tableOutput("detailTable"))
+          
+                ),
+      fluidRow (plotOutput("barPlot"))
+  
     )
-  ))
+  )
+))
+
+
 
 
