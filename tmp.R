@@ -30,7 +30,7 @@ washington$ffiec_msa_md_median_family_income
 washington %>% ggplot()
 
 
-count(washington, derived_msa.md) # 16
+count(wash_init, derived_msa.md) # 16
 count(washington, county_code) # 40
 count(washington, census_tract) # 1442
 
@@ -61,5 +61,9 @@ lei_names %>% filter(name == "21ST MORTGAGE CORPORATION") %>% pull(lei)
 
 wash_init %>% filter(lei == "WKN6AF1FCL7BBYGTGI83")
 
+tmp <- count(wash_init, derived_msa.md) # 16
+write_csv(tmp, "data/tmp.csv")
 
-
+count(wash_init, lei)
+lei_names_msa <- left_join(lei_names,  wash_init) %>% select(lei, name, derived_msa.md)
+write_csv(lei_names, "data/lei_names.csv")
