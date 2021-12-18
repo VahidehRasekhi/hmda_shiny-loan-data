@@ -1,0 +1,110 @@
+---
+title: "Race_Single_vs_Multi"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(plotly)
+```
+
+
+```{r}
+washington <-read_csv('data/state_WA.csv')
+head(washington, 5)
+```
+
+
+```{r}
+#1. Total count if approved and denied loans by county_code, lei
+wa_race<-washington%>%
+  select(lei, county_code, census_tract, derived_race, action_taken, tract_population, tract_minority_population_percent)%>%
+  mutate(approved=ifelse(action_taken == 1, 1, 0)) %>% group_by(lei, county_code, derived_race) %>%
+  summarize(approved=sum(approved), denied=n()-sum(approved))
+wa_race
+```
+
+
+```{r}
+#2. Compute % of Loans Denied and Approved by county_code and lei
+wa_total <- wa_race %>% group_by(lei, county_code) %>% summarize(total_applic=sum(approved)+sum(denied))
+wa_result <- merge(wa_total, wa_race, by=c("lei","county_code")) %>% 
+  mutate(pct_approval=100*approved/total_applic, pct_denied=100*denied/total_applic)
+wa_result
+```
+
+```{r}
+# FOR DENIED LOANS
+wa_result_single <- wa_result %>% select(lei, county_code, derived_race, pct_denied) %>% pivot_wider(names_from = derived_race, values_from = pct_denied, values_fill = list(value=0))%>%replace(is.na(.), 0)%>%rowwise%>%mutate(Other=sum(c_across(c('Joint','Free Form Text Only', '2 or more minority races', 'Race Not Available')))) %>% select(lei, county_code, c("White", "Asian", "Black or African American", "American Indian or Alaska Native" , "Native Hawaiian or Other Pacific Islander", "Other") ) %>% pivot_longer(cols = c("White", "Asian", "Black or African American", "American Indian or Alaska Native" , "Native Hawaiian or Other Pacific Islander", "Other"), names_to = "race", values_to = "values")%>% filter(county_code==53077 & lei == "0S8H5NJFLHEVJXVTQ413")
+wa_result_single
+
+```
+
+
+
+
+
+
+
+```{r}
+
+wa_result_multi <- wa_result %>% select(lei, county_code, derived_race, pct_denied) %>% pivot_wider(names_from = derived_race, values_from = pct_denied, values_fill = list(value=0))%>%replace(is.na(.), 0)%>%rowwise%>%mutate(Other=sum(c_across(c('Joint','Free Form Text Only', '2 or more minority races', 'Race Not Available')))) %>% select(lei, county_code, c("White", "Asian", "Black or African American", "American Indian or Alaska Native" , "Native Hawaiian or Other Pacific Islander", "Other") ) %>% pivot_longer(cols = c("White", "Asian", "Black or African American", "American Indian or Alaska Native" , "Native Hawaiian or Other Pacific Islander", "Other"), names_to = "race", values_to = "values")%>% filter(county_code==53077 & lei %in% c("0S8H5NJFLHEVJXVTQ413", "549300KM40FP4MSQU941", "7H6GLXDRUGQFU57RNE97",   "549300AG64NHILB7ZP05", "549300FGXN1K3HLB1R50",  "KB1H1DSPRFMYMCUFXT09"))
+wa_result_multi
+
+
+
+```
+
+
+```{r}
+wa_result_multi%>%nrow()
+
+```
+```{r}
+
+wa_result_single%>%nrow()
+```
+
+
+```{r}
+total<-rbind(wa_result_single, wa_result_multi)
+total
+```
+
+
+```{r}
+
+
+```
+
+```{r}
+rbind(wa_result_single, wa_result_multi)%>%ggplot(aes(x=lei, y=values), fill=race)+ geom_bar(position="stack", stat="identity",aes(fill=race)) +coord_flip() + labs(title="Loan Denial Rates by Race ") + theme(plot.title = element_text(size = 20, color = "orange")) + labs(y=" % pct")
+geom_hline(yintercept= by_income_pct$avg_pct_approval_rate[1]) 
+  #ggtitle("Loans Denied by Race")
+
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
