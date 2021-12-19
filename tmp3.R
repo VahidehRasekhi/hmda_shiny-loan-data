@@ -1,36 +1,11 @@
-# library(tidyverse)
-# 
-# wash_init <- read.csv("data/wash_init.csv")
-# lei_names <- read.csv("data/lei_name.csv")
-# 
-# lei_msa <- wash_init %>% select(lei, derived_msa.md) %>% distinct()
-# 
-# joined <- left_join(
-#   lei_msa,
-#   lei_names
-# )
-# 
-# write_csv(joined, "data/lei_names_msa.csv")
-# 
-# lei_names_msa <- read.csv("data/lei_names_msa.csv")
-
 library(shiny)
 library(tidyverse)
 library(httr)
 
-wash_init<- read_csv('data/wash_init.csv')
-lei_names_msa <- read_csv('data/lei_names_msa.csv')
-lars_names<- read_csv('data/lars_lookup.csv')
+wash_init<- read_csv('./data/wash_init.csv')
+lei_names_msa <- read_csv('./data/lei_names_msa.csv')
+lars_names<- read_csv('./data/lars_lookup.csv')
 
-
-
-choosen_lei <- 
-    wash_init %>% filter(lei == '1IE8VN30JCEQV1H4R804')
-
-selected_lei <- 
-  wash_init %>% filter(lei %in% c('1IE8VN30JCEQV1H4R804', "549300XY701IELCE5Q08"))
-  
-  
 
 #looking at gender in county code 53033
 # gender<- wash_init %>% 
@@ -42,21 +17,26 @@ selected_lei <-
 
 
 #looking at gender in county code 53033 and lei# 01KWVG908KE7RKPTNP46 
-gender1<- selected_lei %>% 
-  group_by(derived_sex, lei, `derived_msa.md`, action_taken) %>% 
-  count(lei, derived_sex) %>% 
-  pivot_wider(names_from = derived_sex, values_from = n)  
+# gender1<- wash_init %>% 
+#   filter(county_code==53033,lei=='1IE8VN30JCEQV1H4R804') %>% 
+#   group_by(derived_sex, lei, `derived_msa.md`, action_taken) %>% 
+#   count(lei, derived_sex) %>% 
+#   pivot_wider(names_from = derived_sex, values_from = n)  
+# gender1
 
 
 #looking at gender in county code 53033 and lei# 01KWVG908KE7RKPTNP46/549300XY701IELCE5Q08  
-gender2<- selected_lei %>% 
-  group_by(derived_sex, lei, `derived_msa.md`, action_taken) %>% 
-  count(lei, derived_sex) %>% 
-  pivot_wider(names_from = derived_sex, values_from = n)  
+# gender2<- wash_init %>% 
+#   filter(county_code==53033,lei %in% c('1IE8VN30JCEQV1H4R804', "549300XY701IELCE5Q08")) %>% 
+#   group_by(derived_sex, lei, `derived_msa.md`, action_taken) %>% 
+#   count(lei, derived_sex) %>% 
+#   pivot_wider(names_from = derived_sex, values_from = n)  
+# gender2
 
 
 #gender/approval/denial ratio in county code 53033
-gender_approval_rate <- selected_lei %>% 
+gender_approval_rate<-wash_init%>%
+  filter (county_code==53033) %>% 
   select(lei,`derived_msa.md`,county_code, census_tract, derived_sex, action_taken, tract_population, tract_minority_population_percent)%>% 
   mutate(approved=ifelse(action_taken == 1, 1, 0)) %>% 
   group_by(lei, county_code, `derived_msa.md`, derived_sex) %>% 
@@ -64,27 +44,33 @@ gender_approval_rate <- selected_lei %>%
   mutate(pct_approval=approved/(approved+denied)) %>% mutate(pct_denied=(1-pct_approval))
 
 
+
 #gender/approval/denial ratio in county code 53033 and lei#1IE8VN30JCEQV1H4R804
-gender_approval_rate1<-choosen_lei %>% 
+gender_approval_rate1<-wash_init%>%
+  filter (county_code==53033, lei== "1IE8VN30JCEQV1H4R804") %>% 
   select(lei,`derived_msa.md`,county_code, census_tract, derived_sex, action_taken, tract_population, tract_minority_population_percent)%>% 
   mutate(approved=ifelse(action_taken == 1 , 1, 0)) %>% 
   group_by(lei, county_code, `derived_msa.md`, derived_sex) %>% 
   summarize(approved=sum(approved), denied=n()-sum(approved)) %>%
   mutate(pct_approval=approved/(approved+denied)) %>% mutate(pct_denied=(1-pct_approval))
 
+
 #gender/approval/denial ratio in county code 53033 and lei#1IE8VN30JCEQV1H4R804/549300XY701IELCE5Q08
-gender_approval_rate2<-selected_lei %>% 
+gender_approval_rate2<-wash_init%>%
+  filter (county_code==53033, lei %in% c("1IE8VN30JCEQV1H4R804", "549300XY701IELCE5Q08")) %>% 
   select(lei,`derived_msa.md`,county_code, census_tract, derived_sex, action_taken, tract_population, tract_minority_population_percent)%>% 
   mutate(approved=ifelse(action_taken == 1 , 1, 0)) %>% 
   group_by(lei, county_code, `derived_msa.md`, derived_sex) %>% 
   summarize(approved=sum(approved), denied=n()-sum(approved)) %>%
   mutate(pct_approval=approved/(approved+denied)) %>% mutate(pct_denied=(1-pct_approval))
+
 
 #total application per lender in county code 53033
 gender_total_app<- gender_approval_rate %>% 
+  filter(county_code==53033) %>% 
   group_by(`derived_msa.md`,county_code, lei) %>% 
   summarize(total_application=sum(approved)+ sum(denied)) 
-gender_total_app
+
 
 
 #total application per lender in county code 53033 and lei#1IE8VN30JCEQV1H4R804 
@@ -92,7 +78,7 @@ gender_total_app1<- gender_approval_rate %>%
   filter(county_code==53033, lei=="1IE8VN30JCEQV1H4R804") %>% 
   group_by(`derived_msa.md`,county_code, lei) %>% 
   summarize(total_application=sum(approved)+ sum(denied)) 
-gender_total_app1
+
 
 
 #total application per lender in county code 53033 and lei#1IE8VN30JCEQV1H4R804/549300XY701IELCE5Q08 
@@ -100,22 +86,22 @@ gender_total_app2<- gender_approval_rate %>%
   filter(county_code==53033, lei %in% c("1IE8VN30JCEQV1H4R804", "549300XY701IELCE5Q08")) %>% 
   group_by(`derived_msa.md`,county_code, lei) %>% 
   summarize(total_application=sum(approved)+ sum(denied)) 
-gender_total_app2
+
 
 #total application, percentage of approved/denied acpplicaiton based on gender per lender in county code 53033
 gender_total <- merge(gender_total_app, gender_approval_rate) %>% 
   mutate(pct_approval=100*approved/total_application, pct_denied=100*denied/total_application)
-gender_total
+
 
 #total application, percentage of approved/denied acpplicaiton based on gender per lender in county code 53033 and lei#1IE8VN30JCEQV1H4R804
 gender_total1 <- merge(gender_total_app1, gender_approval_rate1) %>% 
   mutate(pct_approval=100*approved/total_application, pct_denied=100*denied/total_application)
-gender_total1
+
 
 #total application, percentage of approved/denied acpplicaiton based on gender per lender in county code 53033 and lei#1IE8VN30JCEQV1H4R804/549300XY701IELCE5Q08
 gender_total2 <- merge(gender_total_app2, gender_approval_rate2) %>% 
   mutate(pct_approval=100*approved/total_application, pct_denied=100*denied/total_application)
-gender_total2
+
 
 
 #plotting denial/approval rate based on gender in county_code 53033 and lei#1IE8VN30JCEQV1H4R804  
@@ -128,7 +114,6 @@ gender_total1 %>%
 
 #side by side plotting of denial/approval rate based on gender in county_code 53033 and lei#1IE8VN30JCEQV1H4R804/549300XY701IELCE5Q08 
 total<- rbind(gender_total1, gender_total2)
-
 
 gender_total1 <- gender_total1 %>%
   select(lei, county_code, derived_sex, pct_denied, pct_approval) %>%

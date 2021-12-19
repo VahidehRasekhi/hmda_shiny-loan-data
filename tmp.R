@@ -67,3 +67,27 @@ write_csv(tmp, "data/tmp.csv")
 count(wash_init, lei)
 lei_names_msa <- left_join(lei_names,  wash_init) %>% select(lei, name, derived_msa.md)
 write_csv(lei_names, "data/lei_names.csv")
+
+
+if (input$select_msa == "WA") {
+  { ifelse(Y ,add(.,1), . ) }
+  {if (y=="") filter(., x>3) else filter(., x<3)} %>% 
+    {if (y=="") filter(., x>3) else filter(., x<3)} %>% 
+    
+  
+wash_init %>% { ifelse( "WA" == "foo", filter(county_code==53033), filter(county_code==53033))}
+
+wash_init %>% filter(if (TRUE == TRUE) {TRUE} else {county_code==53033})
+
+
+
+
+
+
+
+
+
+
+
+
+

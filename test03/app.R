@@ -1,4 +1,5 @@
 library(shiny)
+library(tidyverse)
 
 wash_init <- read.csv("data/wash_init.csv")
 lei_names_msa <- read.csv("data/lei_names_msa.csv")
@@ -10,21 +11,25 @@ lars_names <- read.csv("data/lars_lookup.csv")
 ui <- fluidPage(mainPanel(tabsetPanel(
     tabPanel(
         "Select Institution ",
-        selectInput("select_msa", label = h3("Regions"),
-                    choices = msa_codes,
-                    selected = 1),
-        
         fluidRow(
-            column(6,
-                   selectInput(inputId = "in_instit",
-                    label = h4("Select Institution:"),
-                    multiple = TRUE,
-                    selectize = FALSE,
-                    size = 40,
-                    choices =  names)
+            column(10,        
+                    selectInput("select_msa", label = h4("Regions (MSA/MD code)"),
+                        choices = msa_codes,
+                        selected = 1),
+                    selectInput(inputId = "in_instit",
+                        label = h4("Select Institution:"),
+                        multiple = TRUE,
+                        selectize = FALSE,
+                        width = 800,
+                        size = 40,
+                        choices =  names)
         
             ),
-            column(6,
+            column(2,
+                   selectInput("select", 
+                               label = h3("Institution to compare against."), 
+                               choices = lei_names_msa$name, 
+                               selected = 1),            
                    selectInput(inputId = "out_instit",
                                label = h4("Institutions to compare to:"),
                                multiple = TRUE,
@@ -38,9 +43,6 @@ ui <- fluidPage(mainPanel(tabsetPanel(
         "Compare", 
         fluidRow(
             column(6, 
-                   selectInput("select", label = h3("Select box"), 
-                               choices = lei_names$name, 
-                               selected = 1),            
                    selectInput("derived_ethnicity", label = h3("Select box"), 
                             choices = c("All", lars_names %>% 
                                             filter(lars_names == "derived_ethnicity") %>% pull(value)),
@@ -56,6 +58,14 @@ ui <- fluidPage(mainPanel(tabsetPanel(
         fluidRow(
             column(10, 
                    DT::dataTableOutput("test")
+            )
+        )
+    ),
+    tabPanel(
+        "Gender", 
+        fluidRow(
+            column(10, 
+                   DT::dataTableOutput("test2")
             )
         )
     )
@@ -88,7 +98,7 @@ server <- function(input, output, session) {
  
     ########### Code for second panel
     one_lei <- reactive({
-        lei_number <- lei_names %>% filter(name == input$select) %>% pull(lei)
+        lei_number <- lei_names_msa %>% filter(name == input$select) %>% pull(lei)
         wash_init %>% filter(lei == lei_number)
     })
     
