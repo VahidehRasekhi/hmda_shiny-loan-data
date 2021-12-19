@@ -98,6 +98,7 @@ wa_result %>% select(lei, county_code, derived_race, pct_approval) %>% pivot_wid
 ```{r}
 #Dec 16: Denial Rates Table WORKS!!!
 wa_result %>% select(lei, county_code, derived_race, pct_denied) %>% pivot_wider(names_from = derived_race, values_from = pct_denied, values_fill = list(value=0))%>%replace(is.na(.), 0)%>%rowwise%>%mutate(Other=sum(c_across(c('Joint','Free Form Text Only', '2 or more minority races', 'Race Not Available')))) %>% select(lei, county_code, c("White", "Asian", "Black or African American", "American Indian or Alaska Native" , "Native Hawaiian or Other Pacific Islander", "Other") ) %>% pivot_longer(cols = c("White", "Asian", "Black or African American", "American Indian or Alaska Native" , "Native Hawaiian or Other Pacific Islander", "Other"), names_to = "race", values_to = "values")%>% filter(county_code==53077) %>% head(n=200) %>%ggplot(aes(x=lei, y=values), fill=race)+ geom_bar(position="stack", stat="identity",aes(fill=race)) +coord_flip() + labs(title="Loans Denied") + theme(plot.title = element_text(size = 20, color = "orange")) + labs(y=" % pct")
+geom_hline(yintercept= by_income_pct$avg_pct_approval_rate[1]) 
   #ggtitle("Loans Denied by Race")
 
 
@@ -124,9 +125,8 @@ test<-by_income_pct%>%
 ```{r}
 test<-by_income_pct%>% 
   pivot_wider(names_from = low_income, values_from = pct_approval, values_fill = list(value=0))%>%replace(is.na(.), 0) %>% filter(county_code == 53029) %>% select(lei, low, avg_pct_approval_rate, total_applic, approved) %>% head(n=20)%>% ggplot(aes(x=lei, y=low, text=total_applic)) + geom_bar(stat="identity", fill="steelblue") + coord_flip() + 
-labs(title="Loans Approved to Low Income Borrowers '%") + theme(plot.title = element_text(size = 14, face= "bold")) + labs(y="pct %" , face= "bold")
-#ggtitle("Originations Per Lender to Low Income Borrowers '%'")
-#+ geom_hline(yintercept= by_income_pct[1,4]) 
+labs(title="Loans Approved to Low Income Borrowers '%") + theme(plot.title = element_text(size = 14, face= "bold")) + labs(y="pct %" , face= "bold") + 
+geom_hline(yintercept= by_income_pct$avg_pct_approval_rate[1]) 
 ggplotly(test, tooltip = "text")
 ```
 
@@ -150,7 +150,7 @@ median_family_income_per_county<-washington%>%
   drop_na(county_code)%>%
   distinct(county_code, ffiec_msa_md_median_family_income)%>%
   group_by(county_code, ffiec_msa_md_median_family_income)
-
+median_family_income_per_county
 ```
 
 
@@ -167,19 +167,6 @@ income_approved_denied
 
 
 
-```{r}
-
-
-income_approved_denied %>%
-
-  #group_by(lei, county_code) %>% 
-  #summarize(sum(denied)) #%>%
-
- # mutate(pct_approval=100*approved/total, pct_denied=100*denied/total)
-
-
-```
-
 
 ```{r}
 #% of originated to White vs Minority Borrowers : if i figure out the lei category, I can color dots by
@@ -192,6 +179,16 @@ ggplotly(scatterplot, tooltip = "text")
 ```
 
 
+```{r}
+#Dec 17 Per Single LEI
+white_minority%>% filter(lei == "254900J67JRUY8SSE075") #%>% select(lei, bi_race, pct_approval) %>% pivot_wider(names_from = bi_race, values_from = pct_approval) %>% replace(is.na(.), 0) #%>% #ggplot(aes(x=Minority, y=White, text=lei)) + geom_point(alpha=0.8, colour = "#51A0D5", size=2) + 
+#labs(title="Loans Approved to White and Minority Borrowers '%") + theme(plot.title = element_text(size = 14, face= "bold")) + labs(face= "bold")  
+#ggtitle("Originations Per Lender to White and Minority Borrowers '%'") 
+#ggplotly(scatterplot, tooltip = "text")
+
+
+
+```
 
 ```{r}
 white_minority#%>% filter(county_code==53077) %>% summarise(n_distinct(lei))
