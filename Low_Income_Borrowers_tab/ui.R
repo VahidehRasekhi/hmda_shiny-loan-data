@@ -9,8 +9,10 @@
 
 library(shiny)
 library(plotly)
+library(shinythemes)
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
+    theme = shinytheme("superhero"),
     
     # Application title
     titlePanel("HDMA Analysis"),

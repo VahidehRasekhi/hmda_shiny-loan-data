@@ -1,9 +1,11 @@
 
 library(shiny)
 library(tidyverse)
+library(shinythemes)
 
 ##################### Set variables ##################### 
-wash_init <- read.csv("data/wash_init.csv")
+washington <-read_csv('data/state_WA.csv')
+wash_init <- washington %>% filter(loan_purpose == "1", occupancy_type == "1") 
 lei_names_msa <- read.csv("data/lei_names_msa.csv")
 msa_codes <- c("WA", 0, 13380, 14740, 28420, 30300, 31020, 34580, 36500,
                38900, 42644, 44060, 45104, 47460, 48300, 49420, 99999)
@@ -15,6 +17,7 @@ choosen_set <- c()
 
 ##################### UI ##################### 
 ui <- fluidPage(
+    theme = shinytheme("superhero"),
     # App title ----
     titlePanel("HMDA Comparisons"),
     
