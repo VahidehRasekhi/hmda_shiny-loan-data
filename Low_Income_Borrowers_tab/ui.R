@@ -7,6 +7,7 @@
 #    http://shiny.rstudio.com/
 #
 
+
 library(shiny)
 library(plotly)
 
@@ -14,7 +15,7 @@ library(plotly)
 shinyUI(fluidPage(
   
   # Application title
-  titlePanel("HDMA Analyis"),
+  titlePanel("HDMA Analysis"),
   
   # Sidebar with a slider input for number of bins
   sidebarLayout(
@@ -25,31 +26,22 @@ shinyUI(fluidPage(
                   max = 50,
                   value = 30),
       
-      selectInput("county_code",
-                  "Select County:",
-                  choices = washington %>% pull(county_code)%>%unique()%>%sort()),
+      selectInput("select_msa", label = h4("Regions (MSA/MD code)"),
+                        choices = msa_codes,
+                        selected = 1
+                  ),
       
       selectInput("lei",
                   "Select Lender:",
-                   choices = washington %>% pull(lei)%>%unique()%>%sort())
+                  choices = washington %>% pull(lei)%>%unique()%>%sort())
     ),
     
     # Show a plot of the generated distribution
     mainPanel(
-      fluidRow( 
-               column(width = 8,
-                 plotlyOutput("scatPlot")
-                ),
-                
-               column(width = 4, tableOutput("detailTable"))
-          
-                ),
-      fluidRow (plotlyOutput("barPlot"))
-  
+      plotlyOutput("barPlot")
+      
+      
     )
   )
 ))
-
-
-
 
