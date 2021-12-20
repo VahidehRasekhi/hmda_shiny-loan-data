@@ -19,7 +19,7 @@ ui <- fluidPage(
                         label = h3("Choose Institution:"),
                         choices = unique(sort(washington$name)),
                         selected = 1),
-            h3("Select Institutions"),
+            h3("Select Institution"),
             selectInput("select_msa", label = h4("Regions (MSA/MD code)"),
                         choices = c("WA", unique(sort(washington$`derived_msa-md`))),
                         selected = 1),
@@ -47,8 +47,20 @@ ui <- fluidPage(
     
 )
 
-server <- function(input, output) {
-
+server <- function(input, output, session) {
+    observe({
+        if (input$select_msa == "WA") {
+            names <- unique(sort(washington$name))
+        } else {
+            names <- washington %>%
+                filter(`derived_msa-md` == input$select_msa) %>%
+                pull(name) %>% unique() %>% sort()
+        }
+        updateSelectInput(session, "in_instit",
+                          choices = names
+        )
+    })
+    
 }
 
 shinyApp(ui = ui, server = server)

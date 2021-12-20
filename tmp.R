@@ -86,7 +86,7 @@ tmp <- left_join(washington, lei_names)
 tmp$name
 
 
-
+sum(wash_init$action_taken == 3, 1, 0)
 
 
 
