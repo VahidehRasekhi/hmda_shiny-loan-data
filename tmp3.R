@@ -130,3 +130,4 @@ rbind(gender_total1, genders_total) %>%
   aes(x = lei, y = value, fill = type) + 
   geom_col(position= "stack", stat="identity")+
   facet_wrap(~derived_sex, nrow=1)
+
