@@ -112,6 +112,7 @@ gender_total1 %>%
   aes(x = derived_sex, y = value, fill = type) + 
   geom_col()
 
+
 #side by side plotting of denial/approval rate based on gender in county_code 53033 and lei#1IE8VN30JCEQV1H4R804/549300XY701IELCE5Q08 
 
 gender_total1 <- gender_total1 %>%
@@ -130,4 +131,3 @@ rbind(gender_total1, genders_total) %>%
   geom_col(position= "stack", stat="identity")+
   facet_wrap(~derived_sex, nrow=1)
 
-#just putting a comment
