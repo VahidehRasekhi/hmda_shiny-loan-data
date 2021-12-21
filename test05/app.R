@@ -18,7 +18,7 @@ ui <- fluidPage(
     sidebarLayout(
         
         sidebarPanel(
-            selectInput("select",
+            selectInput("selected_instit",
                         label = h3("Choose Institution:"),
                         choices = unique(sort(washington$name)),
                         selected = 1),
@@ -66,9 +66,13 @@ server <- function(input, output, session) {
         )
     })
     
-    output$gender <- renderPlot({
-        lei <- washington %>% filter(name == input$select) %>% 
+    lei_selected <- reactive({
+        washington %>% filter(name == input$selected_instit) %>% 
             pull(lei) %>% head(1)
+    })
+    
+    output$gender <- renderPlot({
+        lei <- lei_selected()
         
         #gender
         gender<-washington%>%
@@ -111,6 +115,24 @@ server <- function(input, output, session) {
             filter(`derived_msa-md`==42644 & lei %in% c("0S8H5NJFLHEVJXVTQ413", "549300KM40FP4MSQU941"))
         wa_result_multi_gender
         
+        total%>%ggplot(aes(x=lei, y=values, text=lei), fill=race)+ geom_bar(position="stack", stat="identity",aes(fill=race))+
+            coord_flip() + labs(title="Loan Denial Rates by Race ") + 
+            theme(plot.title = element_text(size = 20, color = "orange")) + 
+            labs(y=" % pct")
+        #ggplotly(race_chart, tooltip = "text")
+        
+        
+        
+        rbind(wa_result_single_gender, wa_result_multi_gender) %>% 
+            mutate(lei=replace(lei, lei==unique(total_gender$lei)[1], "single")) %>%
+            mutate(lei=replace(lei, lei==unique(total_gender$lei)[2], "multiple")) %>%
+
+            ggplot(aes(x=lei, y=values, text=lei), fill=gender)+ geom_bar(position="stack", stat="identity",
+                                                                          aes(fill=gender))+
+            coord_flip() + 
+            labs(title="Loan Denial Rates by Gender ") +
+            theme(plot.title = element_text(size = 20, color = "orange")) +
+            labs(y=" Percentage")
         
         total_gender<-rbind(wa_result_single_gender, wa_result_multi_gender)
         total_gender
@@ -125,9 +147,7 @@ server <- function(input, output, session) {
     })
     
     output$race <- renderPlot({ 
-        
-        lei <- washington %>% filter(name == input$select) %>% 
-            pull(lei) %>% head(1)
+        lei <- lei_selected()
         
         #race
         
@@ -170,28 +190,6 @@ server <- function(input, output, session) {
         
         total<-rbind(wa_result_single, wa_result_multi)
         
-        total%>%ggplot(aes(x=lei, y=values, text=lei), fill=race)+ geom_bar(position="stack", stat="identity",aes(fill=race))+
-            coord_flip() + labs(title="Loan Denial Rates by Race ") + 
-            theme(plot.title = element_text(size = 20, color = "orange")) + 
-            labs(y=" % pct")
-        #ggplotly(race_chart, tooltip = "text")
-        
-        
-        
-        rbind(wa_result_single_gender, wa_result_multi_gender) %>% 
-            mutate(lei=replace(lei, lei==unique(total_gender$lei)[1], "single")) %>%
-            mutate(lei=replace(lei, lei==unique(total_gender$lei)[2], "multiple")) %>%
-            #ggplot() + 
-            #aes(x = lei, y = value, fill = type) + 
-            #geom_col(position= "stack", stat="identity")+
-            #facet_wrap(~derived_sex, nrow=1)
-            
-            ggplot(aes(x=lei, y=values, text=lei), fill=gender)+ geom_bar(position="stack", stat="identity",
-                                                                          aes(fill=gender))+
-            coord_flip() + 
-            labs(title="Loan Denial Rates by Gender ") +
-            theme(plot.title = element_text(size = 20, color = "orange")) +
-            labs(y=" Percentage")
         
         total%>%ggplot(aes(x=lei, y=values), fill=race)+ geom_bar(position="stack", stat="identity",aes(fill=race)) +
             coord_flip() + labs(title="Loan Denial Rates by Race ") + 
