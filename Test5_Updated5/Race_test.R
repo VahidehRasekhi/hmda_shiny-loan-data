@@ -25,7 +25,7 @@ wa_result_single_race <- race %>%
 
 wa_result_multi_race <- race %>% 
   filter(lei %in% lei_multiple$lei) %>% 
-  group_by(derived_sex) %>%
+  group_by(derived_race) %>%
   summarize(approved = sum(approved), denied = sum(denied))  %>% 
   mutate(pct_approval = 100 * approved/(approved + denied), 
          pct_denied = 100 * denied/(approved + denied),
