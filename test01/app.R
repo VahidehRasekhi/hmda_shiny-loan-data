@@ -95,30 +95,7 @@ server <- function(input, output, session) {
             summarize(approved=sum(approved), denied=n()-sum(approved)) %>% 
             mutate(pct_approval = 100 * approved/(approved + denied), 
                    pct_denied = 100 * denied/(approved + denied))
-        # gender
-        # 
-        # gender<- gender %>% 
-        #     replace(is.na(.),0)
-        # 
-        #2. Compute % of Loans Denied and Approved by msa_county_code and lei
-        # wa_total_gender<- gender %>% group_by(lei, `derived_msa-md`) %>% 
-        #     summarize(total_applic=sum(approved)+sum(denied))
-        # 
-        # wa_result_gender<-merge(wa_total_gender, gender, by=c("lei","derived_msa-md")) %>%
-        #     mutate(pct_approval=100*approved/total_applic, pct_denied=100*denied/total_applic)
-        # 
-        # wa_result_gender
-        
-        #Select Single LEi
-        # wa_result_single_gender<-wa_result_gender %>%
-        #     select(lei, derived_sex, pct_denied) %>%
-        #     pivot_wider(names_from = derived_sex, values_from = pct_denied, 
-        #                 values_fill = list(value=0)) %>%
-        #     replace(is.na(.), 0) %>%
-        #     pivot_longer(col= c("Female", "Joint", "Male", "Sex Not Available"), 
-        #                  names_to = 'gender', values_to = "values")%>%
-        # wa_result_single_gender
-        
+
         wa_result_single_gender <- gender %>%
             filter(lei == lei_single) 
         
@@ -130,36 +107,10 @@ server <- function(input, output, session) {
                    pct_denied = 100 * denied/(approved + denied),
                    lei = "Aggrage") 
             
-        
-        #Select Multi Lei
-        # wa_result_multi_gender<-wa_result_gender %>%
-        #     select(lei, `derived_msa-md`, derived_sex, pct_denied) %>%
-        #     pivot_wider(names_from = derived_sex, values_from = pct_denied, values_fill = list(value=0))%>%
-        #     replace(is.na(.), 0)%>%
-        #     pivot_longer(col= c("Female", "Joint", "Male", "Sex Not Available"), 
-        #                  names_to= 'gender', values_to = "values") 
-        #     # %>%
-            # filter(`derived_msa-md`==42644 & lei %in% c("0S8H5NJFLHEVJXVTQ413", "549300KM40FP4MSQU941", "7H6GLXDRUGQFU57RNE97",  
-            #                                             "549300AG64NHILB7ZP05", "549300FGXN1K3HLB1R50",  "KB1H1DSPRFMYMCUFXT09"))
-        
-            # wa_result_multi_gender <- wa_result_multi_gender %>% 
-            #     filter(lei %in% lei_multiple$lei) %>% head(15)
-        # %>%
-        #     filter(if (input$select_msa == "WA") {TRUE} else {`derived_msa-md`==input$select_msa})
-        
-        
-        
         wa_result_multi_gender
-        
         
         total_gender<- rbind(wa_result_single_gender, wa_result_multi_gender) #%>% 
         
-        
-        
-        # total_gender <- left_join(total_gender, washington %>% 
-        #     select(lei, name_trunc), by = "lei") %>%
-        #     select(-lei)
-        # 
         total_gender%>%
             ggplot(aes(x=derived_sex, y=pct_denied, text="Compare"), fill=lei)+ 
             geom_bar(position = "dodge", stat="identity",aes(fill=lei))+
