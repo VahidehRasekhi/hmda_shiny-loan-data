@@ -19,7 +19,14 @@ lei_names <- read.csv("data/lei_name.csv")
 washington <-read_csv('data/state_WA.csv')
 washington <- washington %>% filter(loan_purpose == "1", occupancy_type == "1")  
 washington <- left_join(washington, lei_names, by = "lei") 
-washington %>% mutate(name_trunc = name[1:20])
+washington <- washington %>% mutate(name_trunc = substr(name, 1,20))
 
 w5 <- washington %>% head(5)
-substr(w5$name, 1,20)
+substr(w5, 1,20)
+w5
+w5 <- unique(washington$name) %>% head(5)
+washington$name_trunc
+
+w5 <- w5 %>% select(lei)
+w5
+left_join(w5, washington %>% select(lei, name_trunc), by = "lei")
