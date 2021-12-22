@@ -7,7 +7,8 @@ lei_names <- read_csv("data/lei_name.csv")
 washington <-read_csv("data/state_WA.csv")
 washington <- washington %>% filter(loan_purpose == "1", occupancy_type == "1")  
 washington <- left_join(washington, lei_names, by = "lei") 
-head(washington, 5)
+washington <- washington %>% mutate(name_trunc = substr(name, 1,20))
+# head(washington, 5)
 
 
 
@@ -71,11 +72,6 @@ server <- function(input, output, session) {
             pull(lei) %>% head(1)
     })
     
-    lei_selected <- reactive({
-        washington %>% filter(name == input$selected_instit) %>% 
-            pull(lei) %>% head(1)
-    })
-    
     multi_lei_selected <- reactive({
         washington %>% 
             filter(if (is.null(input$in_instit)) {TRUE} 
@@ -87,50 +83,38 @@ server <- function(input, output, session) {
     output$gender <- renderPlot({
         lei_single <- lei_selected()
         
+        lei_multiple <- multi_lei_selected()
+        
         #gender
         gender<-washington%>%
-            select(lei,`derived_msa-md`,  derived_sex, action_taken)%>%
-            mutate(approved=ifelse(action_taken == 1, 1, 0)) %>% group_by(lei, `derived_msa-md`, derived_sex) %>%
-            summarize(approved=sum(approved), denied=n()-sum(approved))
-        gender
+            # if wash selected else all
+            filter(if (input$select_msa == "WA") {TRUE} 
+                   else {`derived_msa-md` == input$select_msa})  %>% 
+            select(lei,`derived_msa-md`,  derived_sex, action_taken) %>%
+            mutate(approved=ifelse(action_taken == 1, 1, 0)) %>% 
+            group_by(lei, derived_sex) %>%
+            summarize(approved=sum(approved), denied=n()-sum(approved)) %>% 
+            mutate(pct_approval = 100 * approved/(approved + denied), 
+                   pct_denied = 100 * denied/(approved + denied))
         
-        gender<- gender %>% 
-            replace(is.na(.),0)
+        wa_result_single_gender <- gender %>%
+            filter(lei == lei_single) 
         
-        #2. Compute % of Loans Denied and Approved by msa_county_code and lei
-        wa_total_gender<- gender %>% group_by(lei, `derived_msa-md`) %>% 
-            summarize(total_applic=sum(approved)+sum(denied))
+        wa_result_multi_gender <- gender %>% 
+            filter(lei %in% lei_multiple$lei) %>% 
+            group_by(derived_sex) %>%
+            summarize(approved = sum(approved), denied = sum(denied))  %>% 
+            mutate(pct_approval = 100 * approved/(approved + denied), 
+                   pct_denied = 100 * denied/(approved + denied),
+                   lei = "Aggrage") 
         
-        wa_result_gender<-merge(wa_total_gender, gender, by=c("lei","derived_msa-md")) %>%
-            mutate(pct_approval=100*approved/total_applic, pct_denied=100*denied/total_applic)
-        
-        wa_result_gender
-        
-        #Select Single LEi
-        wa_result_single_gender<-wa_result_gender %>%
-            select(lei, `derived_msa-md`, derived_sex, pct_denied) %>%
-            pivot_wider(names_from = derived_sex, values_from = pct_denied, values_fill = list(value=0))%>%
-            replace(is.na(.), 0)%>%
-            pivot_longer(col= c("Female", "Joint", "Male", "Sex Not Available"), names_to= 'gender', values_to = "values")%>%
-            filter(`derived_msa-md`==42644 & lei == lei_single)
-        wa_result_single_gender
-        
-        #Select Multi Lei
-        wa_result_multi_gender<-wa_result_gender %>%
-            select(lei, `derived_msa-md`, derived_sex, pct_denied) %>%
-            pivot_wider(names_from = derived_sex, values_from = pct_denied, values_fill = list(value=0))%>%
-            replace(is.na(.), 0)%>%
-            pivot_longer(col= c("Female", "Joint", "Male", "Sex Not Available"), names_to= 'gender', values_to = "values")%>%
-            filter(`derived_msa-md`==42644 & lei %in% c("0S8H5NJFLHEVJXVTQ413", "549300KM40FP4MSQU941", "7H6GLXDRUGQFU57RNE97",  
-                                                        "549300AG64NHILB7ZP05", "549300FGXN1K3HLB1R50",  "KB1H1DSPRFMYMCUFXT09"))
         wa_result_multi_gender
-        
         
         total_gender<- rbind(wa_result_single_gender, wa_result_multi_gender) #%>% 
         
-        
         total_gender%>%
-            ggplot(aes(x=lei, y=values, text=lei), fill=gender)+ geom_bar(position="stack", stat="identity",aes(fill=gender))+
+            ggplot(aes(x=derived_sex, y=pct_denied, text="Compare"), fill=lei)+ 
+            geom_bar(position = "dodge", stat="identity",aes(fill=lei))+
             coord_flip() + 
             labs(title="Loan Denial Rates by Gender ") +
             theme(plot.title = element_text(size = 20, color = "orange")) +
@@ -197,49 +181,40 @@ server <- function(input, output, session) {
     output$race <- renderPlot({ 
         lei_single <- lei_selected()
         
+        lei_multiple <- multi_lei_selected()
+
+        race<-washington%>%
+            # if wash selected else all
+            filter(if (input$select_msa == "WA") {TRUE} 
+                   else {`derived_msa-md` == input$select_msa})  %>% 
+            select(lei,`derived_msa-md`,  derived_race, action_taken) %>%
+            mutate(approved=ifelse(action_taken == 1, 1, 0)) %>% 
+            group_by(lei, derived_race) %>%
+            summarize(approved=sum(approved), denied=n()-sum(approved)) %>% 
+            mutate(pct_approval = 100 * approved/(approved + denied), 
+                   pct_denied = 100 * denied/(approved + denied))
         
-        #To get to computations for Low Income
-        wa_race<-washington%>%
-            select(lei, county_code, `derived_msa-md`, census_tract, derived_race, action_taken, tract_population, tract_minority_population_percent)%>%
-            mutate(approved=ifelse(action_taken == 1, 1, 0)) %>% group_by(lei, `derived_msa-md`, derived_race) %>%
-            summarize(approved=sum(approved), denied=n()-sum(approved))
+        wa_result_single_race <- race %>%
+            filter(lei == lei_single) 
         
-        #2. Compute % of Loans Denied and Approved by msa_county_code and lei
-        wa_total<-wa_race %>% group_by(lei, `derived_msa-md`) %>% summarize(total_applic=sum(approved)+sum(denied))
-        wa_result<-merge(wa_total, wa_race, by=c("lei","derived_msa-md")) %>% 
-            mutate(pct_approval=100*approved/total_applic, pct_denied=100*denied/total_applic)
-        head(wa_result, 5)
+        wa_result_multi_race <- race %>% 
+            filter(lei %in% lei_multiple$lei) %>% 
+            group_by(derived_race) %>%
+            summarize(approved = sum(approved), denied = sum(denied))  %>% 
+            mutate(pct_approval = 100 * approved/(approved + denied), 
+                   pct_denied = 100 * denied/(approved + denied),
+                   lei = "Aggrage") 
         
-        #Select Single LEi
-        wa_result_single<-wa_result %>% 
-            select(lei, `derived_msa-md`, derived_race, pct_denied) %>% 
-            pivot_wider(names_from = derived_race, values_from = pct_denied, values_fill = list(value=0))%>%
-            replace(is.na(.), 0)%>%rowwise%>%
-            mutate(Other=sum(c_across(c('Joint','Free Form Text Only', '2 or more minority races', 'Race Not Available')))) %>% 
-            select(lei, `derived_msa-md`, c("White", "Asian", "Black or African American", "American Indian or Alaska Native" , "Native Hawaiian or Other Pacific Islander", "Other") ) %>% 
-            pivot_longer(cols = c("White", "Asian", "Black or African American", "American Indian or Alaska Native" , "Native Hawaiian or Other Pacific Islander", "Other"), names_to = "race", values_to = "values")%>% 
-            filter(`derived_msa-md`==42644 & lei == lei_single)
-        wa_result_single
+        wa_result_multi_race
         
-        #Select Multi Lei
-        wa_result_multi<-wa_result %>% 
-            select(lei, `derived_msa-md`, derived_race, pct_denied) %>% 
-            pivot_wider(names_from = derived_race, values_from = pct_denied, values_fill = list(value=0))%>%
-            replace(is.na(.), 0)%>%rowwise%>%
-            mutate(Other=sum(c_across(c('Joint','Free Form Text Only', '2 or more minority races', 'Race Not Available')))) %>% 
-            select(lei, `derived_msa-md`, c("White", "Asian", "Black or African American", "American Indian or Alaska Native" , "Native Hawaiian or Other Pacific Islander", "Other") ) %>% 
-            pivot_longer(cols = c("White", "Asian", "Black or African American", "American Indian or Alaska Native" , "Native Hawaiian or Other Pacific Islander", "Other"), names_to = "race", values_to = "values")%>% 
-            filter(`derived_msa-md`==42644 & lei %in% c("0S8H5NJFLHEVJXVTQ413", "549300KM40FP4MSQU941", "7H6GLXDRUGQFU57RNE97",  
-                                                        "549300AG64NHILB7ZP05", "549300FGXN1K3HLB1R50",  "KB1H1DSPRFMYMCUFXT09"))
-        wa_result_multi
+        total_race<- rbind(wa_result_single_race, wa_result_multi_race) #%>% 
         
-        total<-rbind(wa_result_single, wa_result_multi)
-        
-        
-        total%>%
-            ggplot(aes(x=lei, y=values), fill=race)+ geom_bar(position="stack", stat="identity",aes(fill=race)) +
-            coord_flip() + labs(title="Loan Denial Rates by Race ") + 
-            theme(plot.title = element_text(size = 20, color = "orange")) + 
+        total_race%>%
+            ggplot(aes(x=derived_race, y=pct_denied, text="Compare"), fill=lei)+ 
+            geom_bar(position = "dodge", stat="identity",aes(fill=lei))+
+            coord_flip() + 
+            labs(title="Loan Denial Rates by Race ") +
+            theme(plot.title = element_text(size = 20, color = "orange")) +
             labs(y=" % pct")
         
     })
@@ -256,9 +231,9 @@ server <- function(input, output, session) {
             select(lei, county_code, `derived_msa-md`, census_tract, derived_race, action_taken, tract_population, tract_minority_population_percent, income, ffiec_msa_md_median_family_income)%>%
             filter(if (input$select_msa == "WA") {TRUE} 
                    else {`derived_msa-md` == input$select_msa})  %>% 
-            filter(income<0.5*ffiec_msa_md_median_family_income) %>% 
+            filter(income<0.5*ffiec_msa_md_median_family_income) %>%
             mutate(approved=ifelse(action_taken == 1, 1, 0)) %>%
-            group_by(lei) %>% 
+            group_by(lei) %>%
             summarize(approved=sum(approved), denied=n()-sum(approved))%>%
             mutate(pct_approval=100*approved/(approved+denied), pct_denied=100*denied/(approved+denied))
         
@@ -279,11 +254,16 @@ server <- function(input, output, session) {
         low_income_multi<-low_income_multi%>%mutate(marker1= 2)
         low_income_combo<-rbind(low_income1, low_income_multi)
         
-        
+        # low_income_combo <- left_join(low_income_combo, washington %>% 
+        #                                   select(lei, name_trunc), by = "lei") %>%
+        #     select(-lei)
+        # 
         low_income_combo %>% ggplot(aes(x=lei, y=pct_approval, fill = marker1)) + geom_bar(stat="identity") +  coord_flip() +
-            labs(title="Loans Approved to Low Income Borrowers '%") + theme(plot.title = element_text(size = 14, face= "bold")) + 
+            labs(title="Loans Approved to Low Income Borrowers '%") + theme(plot.title = element_text(size = 14, face= "bold")) +
             labs(y = "Low Income Borrowers %") + theme(legend.position = "none") +
             geom_hline(yintercept= avg_approval)
+        #ggplotly(low_income_comparison, tooltip = "text")
+        
         
     })
     
@@ -291,67 +271,42 @@ server <- function(input, output, session) {
     output$white_minority_combo_scat <- renderPlot({ 
         lei_single <- lei_selected()
         
-        #1. To get to Minority Borrowers Calculaions
-        wa_race<-washington%>%
-            select(lei, county_code, `derived_msa-md`, census_tract, derived_race, action_taken, tract_population,  tract_minority_population_percent)%>%
-            mutate(approved=ifelse(action_taken == 1, 1, 0)) %>% group_by(lei, `derived_msa-md`, derived_race) %>%
-            summarize(approved=sum(approved), denied=n()-sum(approved))
-        head(wa_race, 5)
+        lei_multiple <- multi_lei_selected()
         
-        #2. Compute % of Loans Denied and Approved by msa_code and lei
-        wa_race %>% group_by(lei, `derived_msa-md`) %>% summarize(total_applic=sum(approved)+sum(denied))
-        wa_result<-merge(wa_total, wa_race, by=c("lei","derived_msa-md")) %>% 
-            mutate(pct_approval=100*approved/total_applic, pct_denied=100*denied/total_applic)
-        head(wa_result, 5)
+        bi_race<-washington%>%
+            # if wash selected else all
+            filter(if (input$select_msa == "WA") {TRUE} 
+                   else {`derived_msa-md` == input$select_msa})  %>% 
+            select(lei,`derived_msa-md`,  derived_race, action_taken) %>%
+            mutate(approved=ifelse(action_taken == 1, 1, 0), bi_race=ifelse(derived_race=='White', 'White', 'Minority')) %>% 
+            group_by(lei, bi_race) %>%
+            summarize(approved=sum(approved), denied=n()-sum(approved)) %>% 
+            mutate(pct_approval = 100 * approved/(approved + denied), 
+                   pct_denied = 100 * denied/(approved + denied))
         
-        #3. Regroup Race by White and Minority by adding all non-White together
-        wa_minority<-wa_result %>% 
-            mutate(bi_race=ifelse(derived_race=='White', 'White', 'Minority')) %>% 
-            group_by(lei, `derived_msa-md` ,bi_race) %>% summarise(approved=sum(approved), denied=sum(denied))
-        head(wa_minority, 5)
+        ## Change
+        bi_race_single<-bi_race %>%
+            filter(lei == lei_single) 
         
-        #4. Compute pct_approved, denied for White and Minority Borrowers
-        wa_county<-wa_minority %>% group_by(lei, `derived_msa-md` ) %>% summarise(total_applic=sum(approved) + sum(denied))
-        white_minority<-merge(wa_minority, wa_county, by=c("lei","derived_msa-md")) %>% 
-            mutate(pct_approval=100*approved/total_applic, pct_denied=100*denied/total_applic)
-        
-        head(white_minority, 5)
-        
-        #Select Single LEI
-        white_minority_one<-white_minority%>% 
-            filter(`derived_msa-md`==42644 & lei==lei_single) %>% 
-            select(lei, bi_race, pct_approval) %>%
-            pivot_wider(names_from = bi_race, values_from = pct_approval) %>% 
-            replace(is.na(.), 0) 
-        white_minority_one
-        
-        #Select Multiple Lei
-        white_minority_multi<-white_minority%>% 
-            filter(`derived_msa-md`==42644 & lei %in% c("549300KM40FP4MSQU941", "7H6GLXDRUGQFU57RNE97",   "549300AG64NHILB7ZP05", "549300FGXN1K3HLB1R50",  "KB1H1DSPRFMYMCUFXT09")) %>% 
-            select(lei, bi_race, pct_approval) %>%
-            pivot_wider(names_from = bi_race, values_from = pct_approval) %>% 
-            replace(is.na(.), 0) 
-        white_minority_multi
-        
-        #Add Markers
-        white_minority_one<- white_minority_one %>% mutate(marker1=1)
-        white_minority_multi<-white_minority_multi %>% mutate(marker1=2)
-        
-        #Combine Multi and Single
-        white_minority_combo<-rbind(white_minority_one, white_minority_multi)
-        white_minority_combo
-        
-        # Scatterplot for combined
-        white_minority_combo%>%
-            ggplot(aes(x=Minority, y=White, text=lei)) + 
-            geom_point(alpha=0.8, size=3, colour=white_minority_combo$marker1) + 
-            labs(title="Loans Approved to White and Minority Borrowers '%") + 
-            theme(plot.title = element_text(size = 14, face= "bold")) + 
-            labs(face= "bold") + theme(legend.position = "none")+
-            labs(x="Minority Borrowers", y="White Borrowers", size=11, face="bold")
-        #ggplotly(white_minority_combo_scat, tooltip = "text")
+        bi_race_multi<-bi_race %>% 
+            filter(lei %in% lei_multiple$lei) %>% 
+            group_by(bi_race) %>%
+            summarize(approved = sum(approved), denied = sum(denied))  %>% 
+            mutate(pct_approval = 100 * approved/(approved + denied), 
+                   pct_denied = 100 * denied/(approved + denied),
+                   lei = "Aggragate") 
         
         
+        total_bi_race<- rbind(bi_race_single, bi_race_multi) #%>% 
+        total_bi_race
+        
+        
+        total_bi_race%>%
+            ggplot(aes(x= bi_race, y=pct_approval, text="Compare"), fill=lei)+ 
+            geom_bar(position = "dodge", stat="identity",aes(fill=lei))+
+            labs(title="Loan Approval Rates to White and Minority Borrowers") +
+            theme(plot.title = element_text(size = 20, color = "orange")) +
+            labs(y=" % pct", x= NULL)
     })
     
 }    
